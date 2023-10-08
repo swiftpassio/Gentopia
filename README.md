@@ -92,6 +92,8 @@ See [here](https://gentopia.readthedocs.io/en/latest/index.html) for full docume
 
 ## News 👷
 
+**[Oct 7]** The companion paper was accepted by #EMNLP 23. See you in Singapore! 🦙🌎
+
 **[Aug 6]** We've submitted our work as a paper for EMNLP 2023. Special thanks to the research [team](https://gentopia-ai.github.io/Gentopia-AI-Homepage/#about) and professors from NCSU, GMU, and CMU for collaboration :)
 
 ## Join us! 🌎
