@@ -1,0 +1,31 @@
+name: ZendeskSearch
+type: rewoo
+version: 0.0.1
+description: |
+  This agent is used to search for help articles in Zendesk.
+target_tasks:
+  - Based on the user's query, search for help articles in Zendesk
+  - Summarize the help articles and provide the user with the most relevant information
+
+prompt_template:
+  Planner: !prompt intercom.prompt.IntercomPlannerPrompt
+  Solver: !prompt intercom.prompt.IntercomSolverPrompt
+llm:
+  Planner:
+    model_name: gpt-4
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 1024
+  Solver:
+    model_name: gpt-4
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 1024
+plugins:
+  - !tool intercom.tool.GetUserData
+  - !tool intercom.tool.GetIntercomHistoryForUser
+  - !include ./llm.yaml

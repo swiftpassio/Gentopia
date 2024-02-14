@@ -1,0 +1,34 @@
+name: intercom_debugger
+type: rewoo
+version: 0.0.1
+description: This agent is a technical support expert on intercom.
+target_tasks:
+  - Get the user data
+  - get intercom history for user
+  - get call log of last 3 missed calls
+
+prompt_template:
+  Planner: !prompt intercom.prompt.IntercomPlannerPrompt
+  Solver: !prompt intercom.prompt.IntercomSolverPrompt
+llm:
+  Planner:
+    # use 16k model , gpt-4
+    model_name: gpt-4
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 1024
+  Solver:
+     # use 16k model , gpt-4
+    model_name: gpt-4
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 1024
+plugins:
+  - !tool intercom.tool.GetIntercomHistoryForUser
+  - !tool intercom.tool.GetUserData
+  - !tool intercom.tool.GetCallLogOfLast3MissedCalls
+  - !include ./llm.yaml
