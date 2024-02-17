@@ -44,6 +44,7 @@ setup(
         'chroma',
         'chromadb',
         'tiktoken',
-        'scholarly'
+        'scholarly',
+        'google-cloud-bigquery==3.17.2'
     ],
 )

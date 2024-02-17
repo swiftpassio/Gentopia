@@ -34,6 +34,7 @@ IntercomPlannerPrompt = PromptTemplate(
     template=
     """You are Nagesh, an experienced technical support expert on intercom system able to debug issues and provide solutions to the user problems..
     For each step, make one plan followed by one tool-call, which will be executed later to retrieve evidence for that step.
+    Depending on the task at hand, you may need to combine multiple evidences.
     You should store each evidence into a distinct variable #E1, #E2, #E3 ... that can be referred to in later tool-call inputs.
     
     ##Available Tools##
@@ -65,7 +66,13 @@ IntercomSolverPrompt = PromptTemplate(
   - check if intercom directory is enabled
   - check intercom settings if use_app then user uses video calling and if phone then user uses regular phone
   - check intercom history for user for missing calls
+  - check missing call logs events and mention the reason
+  - for regular phone call , check if call rang , answered or completed with answer or any error
+  - mention if notification is being sent to multiple devices
+  - mention if any calls are picked by another user
+  - check and mention device settings like dnd mode, battery saver mode, network issues, silent mode, notification settings
   - do not check any other details that are not related to intercom.
+
     I will provide step-by-step plans(#Plan) and evidences(#E) that could be helpful for you.
     Your task is to briefly summarize each step, then make a short final conclusion for your task.
     
