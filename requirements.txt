@@ -52,7 +52,7 @@ pytest
 PyYAML
 setuptools
 uvicorn
-openai
+openai==0.28.0
 pexpect
 gradio_client
 pinecone-client
