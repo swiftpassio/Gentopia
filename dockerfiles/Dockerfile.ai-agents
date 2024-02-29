@@ -1,7 +1,7 @@
 FROM sl-ai-agents-base
 
-WORKDIR /code/Gentopia
+WORKDIR /code/agents
 
-RUN chmod +x /code/Gentopia/slagents/bin/server.sh
+RUN chmod +x /code/agents/slagents/bin/server.sh
 
-CMD ["/code/Gentopia/slagents/bin/server.sh"]
+CMD ["/code/agents/slagents/bin/server.sh"]

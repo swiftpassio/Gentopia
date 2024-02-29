@@ -4,7 +4,7 @@ FROM python:3.10-alpine
 # Set environment variables to non-interactive (useful for automated builds)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/code/Gentopia \
+    PYTHONPATH=/code/agents \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8
 
@@ -28,16 +28,16 @@ RUN pip install --upgrade pip setuptools
 EXPOSE 5000
 
 # Copy only the requirements.txt initially to leverage Docker cache
-COPY requirements.txt /code/Gentopia/requirements.txt
+COPY requirements.txt /code/agents/requirements.txt
 
 # Install Python dependencies
-RUN pip install -r /code/Gentopia/requirements.txt
+RUN pip install -r /code/agents/requirements.txt
 
 # Copy the rest of your application code
-COPY ./ /code/Gentopia
+COPY ./ /code/agents
 
 # Set the working directory
-WORKDIR /code/Gentopia
+WORKDIR /code/agents
 
 # Command to run your application
-CMD ["/code/Gentopia/slagents/bin/server.sh"]
+CMD ["/code/agents/slagents/bin/server.sh"]

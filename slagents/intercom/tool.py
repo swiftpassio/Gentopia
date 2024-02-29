@@ -107,14 +107,25 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
             raise Exception(f"Failed to get user data: {response.text}")
-        call_row_ids = [call["id_str"] for call in response.json()["data"]["call_history"]]
+        call_room_ids = [{
+            "room_sid": call["room_sid"],
+            "id_str": call["id_str"]
+        } for call in response.json()["data"]["call_history"]]
         logs = []
-        for call_row_id in call_row_ids:
+        for call_row_dict in call_room_ids:
+            call_row_id = call_row_dict["id_str"]
+            call_room_id = call_row_dict["room_sid"]
             url = f"https://admin.swiftlane.com/api/v1/intercom-bq-logs?call_row_id={call_row_id}"
             response = requests.get(url, headers=headers)
             if response.status_code != 200:
                 raise Exception(f"Failed to get user data: {response.text}")
-            logs.append(response.json())
+            server_logs = response.json()
+            mobile_log = get_missed_call_andriod_logs(call_room_id)
+            logs.append({
+                "server_logs": server_logs,
+                "mobile_logs": mobile_log
+            })
+
         return logs
 
     async def _arun(self, *args: Any, **kwargs: Any) -> Any:
@@ -164,3 +175,195 @@ FROM
         for row in query_job.result()
     ]
     return results[0] if results else {}
+
+
+def get_missed_call_andriod_logs(room_sid):
+    query = f"""
+                SELECT
+  *
+FROM (
+  SELECT
+    original_timestamp,
+    CASE
+      WHEN action = 'telecom_helper_create_incoming_call_account_error' THEN 'Telecom framework: telecom account is not initialized, app clear cache required'
+      WHEN action = 'telecom_helper_create_incoming_call' THEN 'Telecom framework: requested to show incoming call'
+      WHEN action = 'show_missed_call_notification' THEN 'Missed call notification shown'
+      WHEN action = 'telecom_helper_decline_call' THEN 'Telecom framework: terminate call connection'
+      WHEN action = 'telecom_service_on_create_incoming_connection' THEN 'Telecom framework: creating call connection'
+      WHEN action = 'telecom_service_on_create_incoming_connection_error' THEN CONCAT('Telecom framework: create call connection failed: ', error_msg)
+      WHEN action = 'telecom_service_on_create_incoming_connection_failed' THEN 'Telecom framework: create connection failed'
+      WHEN action = 'telecom_conn_show_incoming_call_ui' THEN 'Telecom framework: showing incoming call UI'
+      WHEN action = 'telecom_conn_timeout_reached' THEN 'Telecom framework: on ringing timeout, terminating'
+      WHEN action = 'telecom_conn_hold' THEN 'Telecom framework: on hold'
+      WHEN action = 'telecom_conn_unhold' THEN 'Telecom framework: on unhold'
+      WHEN action = 'telecom_conn_answer' THEN 'Telecom framework: on answered'
+      WHEN action = 'telecom_conn_reject' THEN 'Telecom framework: on rejected'
+      WHEN action = 'telecom_conn_disconnect' THEN 'Telecom framework: on disconnect'
+      WHEN action = 'telecom_conn_abort' THEN 'Telecom framework: on abort'
+      WHEN action = 'telecom_conn_silence' THEN 'Telecom framework: on silence'
+      WHEN action = 'telecom_conn_start_ringing' THEN 'Telecom framework: play ringtone'
+      WHEN action = 'telecom_conn_stop_ringing' THEN 'Telecom framework: cancel ringtone'
+      WHEN action = 'notification_unlock_action_btn_clicked' THEN 'On unlock clicked'
+      WHEN action = 'notification_decline_action_btn_clicked' THEN 'On decline clicked'
+      WHEN action LIKE 'telecom_conn_state_changed_%' THEN CONCAT('Telecom framework: connection status changed: ', SUBSTRING(action, 28))
+      WHEN action = 'unlock'AND error_msg IS NOT NULL THEN CONCAT('Unlock failed=', error_msg)
+      WHEN action ='unlock' THEN 'Unlock success'
+      WHEN action = 'show_answer_screen' THEN 'Answer screen: shown'
+      WHEN action = 'hide_answer_screen' THEN 'Answer screen: hide'
+      WHEN action = 'answer_activity_destroyed' THEN 'Answer screen: destroy'
+      WHEN action = 'answer_activity_back_pressed' THEN 'Answer screen: on back clicked'
+      WHEN action = 'answer'
+    AND error_msg IS NOT NULL THEN CONCAT('Answering failed=', error_msg)
+      WHEN action = 'answer' THEN 'Answering'
+      WHEN action = 'notification_answer_action_btn_clicked' THEN 'Notification: on answer'
+      WHEN action = 'no_mic_permission_skip_answering' THEN 'Notification: answering, mic permission not accepted, skipping'
+      WHEN action = 'video_activity_resumed' THEN 'OnCall screen: shown'
+      WHEN action = 'video_activity_paused' THEN 'OnCall screen: hide'
+      WHEN action = 'video_activity_destroyed' THEN 'OnCall screen: destroy'
+      WHEN action = 'video_activity_on_end_call' THEN 'OnCall screen: on end call clicked'
+      WHEN action = 'video_activity_on_unlock' THEN 'OnCall screen: on unlock clicked'
+      WHEN action = 'video_service_on_command' THEN CONCAT('Video service: start failed=', error_msg)
+      WHEN action = 'video_service_connecting'
+    AND error_msg IS NOT NULL THEN CONCAT('Video service: connecting to room failed=', error_msg)
+      WHEN action = 'video_service_connecting' THEN 'Video service: connecting to room'
+      WHEN action = 'video_service_connected' THEN "Video service: room connected"
+      WHEN action = 'onParticipantConnected' THEN "Video service: participan connected"
+      WHEN action = 'onParticipantDisconnected' THEN "Video service: participan disconnected"
+      WHEN action = 'video_service_disconnected' AND error_msg IS NOT NULL THEN CONCAT('Video service: room disconnected with error=', error_msg)
+      WHEN action = 'video_service_disconnected' THEN 'Video service: room disconnected'
+      WHEN action = 'first_time_remote_video_connected' THEN 'Video service: remove video connected'
+      WHEN action = 'video_service_on_remote_video_disconnected' THEN 'Video service: remove video disconnected'
+      WHEN action = 'video_service_on_local_audio_created' AND error_msg IS NOT NULL THEN CONCAT('Video service: local audio creating failed=', error_msg)
+      WHEN action = 'video_service_on_local_audio_created' THEN 'Video service: local audio created'
+      WHEN action = 'video_service_on_local_audio_released' THEN 'Video service: local audio released'
+      WHEN action = 'video_service_on_local_video_created'
+    AND error_msg IS NOT NULL THEN concat ('Video service: local video creation failed=',
+      error_msg)
+      WHEN action = 'video_service_on_local_video_created' THEN 'Video service: local video created'
+      WHEN action = 'video_service_on_local_video_released' THEN 'Video service: local video released'
+    ELSE
+    action
+  END
+    AS action,
+    context_app_version AS app_version,
+    room_sid,
+    CONCAT(context_device_manufacturer, ' / ', context_device_model) AS device,
+    CONCAT('reachable=', network_reachable, '; cellular=', context_network_cellular, '; wifi=', context_network_wifi) AS network_status,
+    CONCAT('is power saver eneabled=', power_save_mode_enabled, '\n','is idle mode enabled=', idle_mode_enabled) AS device_state_1,
+    CONCAT('notification enabled=',is_notification_enabled,'\n','phone permission granted=',read_phone_state_permission_granted, '\n', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
+    CONCAT('is DND enabled=', is_dnd_enabled, '\n', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
+    CONCAT('') AS notification_config,
+    context_traits_user_id,
+    TIMESTAMP(DATETIME(original_timestamp, "America/Los_Angeles")) AS US_LA_time,
+  FROM
+    `swiftpass.android_swiftlane_id.intercom_view`
+  WHERE
+    action IN ( 'telecom_helper_create_incoming_call_account_error',
+      'telecom_helper_create_incoming_call',
+      'show_missed_call_notification',
+      'telecom_helper_decline_call',
+      'telecom_service_on_create_incoming_connection',
+      'telecom_service_on_create_incoming_connection_error',
+      'telecom_service_on_create_incoming_connection_failed',
+      'telecom_conn_show_incoming_call_ui',
+      'telecom_conn_timeout_reached',
+      'telecom_conn_hold',
+      'telecom_conn_unhold',
+      'telecom_conn_answer',
+      'telecom_conn_reject',
+      'telecom_conn_disconnect',
+      'telecom_conn_abort',
+      'telecom_conn_silence',
+      'telecom_conn_start_ringing',
+      'telecom_conn_stop_ringing',
+      'notification_unlock_action_btn_clicked',
+      'notification_decline_action_btn_clicked',
+      'unlock',
+      'show_answer_screen',
+      'hide_answer_screen',
+      'answer_activity_destroyed',
+      'answer_activity_back_pressed',
+      'answer',
+      'notification_answer_action_btn_clicked',
+      'no_mic_permission_skip_answering',
+      'video_activity_resumed',
+      'video_activity_paused',
+      'video_activity_destroyed',
+      'video_activity_on_end_call',
+      'video_activity_on_unlock',
+      'video_service_on_command',
+      'video_service_connecting',
+      'video_service_connected',
+      'onParticipantConnected',
+      'onParticipantDisconnected',
+      'video_service_disconnected',
+      'first_time_remote_video_connected',
+      'video_service_on_remote_video_disconnected',
+      'video_service_on_local_audio_created',
+      'video_service_on_local_audio_released',
+      'video_service_on_local_video_created',
+      'video_service_on_local_video_released' )
+    OR action LIKE 'telecom_conn_state_changed_%'
+  UNION ALL
+  SELECT
+    original_timestamp,
+    CASE action
+      WHEN 'new_call' THEN 'FCM: new call'
+      WHEN 'call_not_active' THEN 'FCM: call not active, skipping'
+      WHEN 'cancel_call' THEN 'FCM: cancel call'
+      WHEN 'missed_call' THEN CONCAT('FCM: missed call (status=', status, ')')
+      WHEN 'failed' THEN 'FCM: failed whne checking call status, skipping'
+      WHEN 'start_call_time_check_initiated' THEN 'FCM: call time check performed'
+      WHEN 'call_time_check_failed' THEN 'FCM: call time check failed'
+      WHEN 'incoming_call_request_notification' THEN 'FCM: In coming notification shown'
+    ELSE
+    action
+  END
+    AS action,
+    context_app_version AS app_version,
+    room_sid,
+    CONCAT(context_device_manufacturer, ' / ', context_device_model) AS device,
+    CONCAT('reachable=', network_reachable, '; cellular=', context_network_cellular, '; wifi=', context_network_wifi) AS network_status,
+    CONCAT('is power saver eneabled=', power_save_mode_enabled, '\n','is idle mode enabled=', idle_mode_enabled) AS device_state_1,
+    CONCAT('notification enabled=',is_notification_enabled,'\n','phone permission granted=',read_phone_state_permission_granted, '\n', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
+    CONCAT('is DND enabled=', is_dnd_enabled, '\n', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
+    CONCAT('notification delay=', message_delivery_delay_seconds, '\n','is call start time valid=', is_call_start_time_valid, '\n','delay time threshold=', call_start_time_threshold) AS notification_config,
+    context_traits_user_id,
+    TIMESTAMP(DATETIME(original_timestamp, "America/Los_Angeles")) AS US_LA_time,
+  FROM
+    `swiftpass.android_swiftlane_id.fcm_view`
+  WHERE
+    action IN ('new_call',
+      'cancel_call',
+      'incoming_call_request_notification',
+      'call_not_active',
+      'start_call_time_check_initiated',
+      'call_time_check_failed' )
+    OR (action = 'failed'
+      AND error_msg = 'error checking if call is active') )
+WHERE
+   room_sid= f{room_sid}
+ORDER BY
+  original_timestamp DESC
+LIMIT
+  1000
+            """
+    client = get_google_bigquery_client()
+    query_job = client.query(query)
+    results = [
+        {
+            "original_timestamp": row.original_timestamp,
+            "action": row.action,
+            "app_version": row.app_version,
+            "device": row.device,
+            "network_status": row.network_status,
+            "device_state_1": row.device_state_1,
+            "user_setting": row.user_setting,
+            "device_state_2": row.device_state_2,
+            "notification_config": row.notification_config,
+            "context_traits_user_id": row.context_traits_user_id,
+            "US_LA_time": row.US_LA_time,
+        }
+        for row in query_job.result()
+    ]
+    return results if results else []

@@ -18,7 +18,7 @@ class ClassWithSchema:
     def dumps(self, **kwargs) -> str:
         return self.Schema().dumps(self, **kwargs)
 
-    def dump(self, **kwargs) -> Dict[str, Any()]:
+    def dump(self, **kwargs) -> Dict[str, Any]:
         return self.Schema().dump(self, **kwargs)
 
     @classmethod
