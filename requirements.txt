@@ -21,7 +21,6 @@ marshmallow-polyfield
 dataclasses-jsonschema>=2.16.0
 
 
-numpy>=1.26.4
 
 # secrets
 google-cloud-secret-manager>=2.18.2
@@ -51,7 +50,6 @@ geopy
 pydantic==1.9
 pytest
 PyYAML
-requests
 setuptools
 uvicorn
 openai
