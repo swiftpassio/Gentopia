@@ -2,6 +2,6 @@ FROM sl-ai-agents-base
 
 WORKDIR /code/Gentopia
 
-RUN chmod +x /code/Gentopia/slagents/bin/cloud_run_start.sh
+RUN chmod +x /code/Gentopia/slagents/bin/server.sh
 
 CMD ["/code/Gentopia/slagents/bin/server.sh"]
