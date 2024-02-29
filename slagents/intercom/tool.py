@@ -3,6 +3,8 @@ from google.cloud import bigquery
 import logging
 import ast
 
+from slagents.utilities import tools_utitlity
+
 logger = logging.getLogger(__file__)
 
 _bigquery_client = None
@@ -21,15 +23,14 @@ class GetUserData(BaseTool):
     description = "A tool to get user data , example: get_user_data {'user_id': 236154022679109146, 'company_id': 82488426438216692}"
 
     def _run(self, user_id_str: str) -> Any:
-        # read base url from .env file
-        base_url = os.getenv("BASE_URL")
         user_data = ast.literal_eval(user_id_str)
         user_id = user_data["user_id"]
         company_id = user_data["company_id"]
         # https://admin.swiftlane.com/api/v1/user/236154022679109146?company_id=82488426438216692
         url = f"https://admin.swiftlane.com/api/v1/user/{user_id}?company_id={company_id}"
+        access_token = tools_utitlity.check_and_refresh_access_token(doc_id="236154022679109146")
         headers = {
-            "Authorization": f"Bearer {os.getenv('API_TOKEN')}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
         response = requests.get(url, headers=headers)
@@ -62,15 +63,16 @@ class GetIntercomHistoryForUser(BaseTool):
 
     def _run(self, user_data) -> Any:
         print(f"Getting user data for user: {user_data}")
-        user_json =  ast.literal_eval(user_data)
+        user_json = ast.literal_eval(user_data)
         user_id = user_json["id_str"]
         company_id = user_json["workspace_id_str"]
         # read base url from .env file
         base_url = os.getenv("BASE_URL")
         # https://admin.swiftlane.com/api/v1/intercom/history/?company_id=82488426438216692&page=1&per_page=20&user_id=236154022679109146
         url = f"{base_url}/api/v1/intercom/history/?company_id={company_id}&page=1&per_page=5&user_id={user_id}"
+        access_token = tools_utitlity.check_and_refresh_access_token(doc_id="236154022679109146")
         headers = {
-            "Authorization": f"Bearer {os.getenv('API_TOKEN')}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
         response = requests.get(url, headers=headers)
@@ -97,8 +99,9 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
         company_id = user_data_obj["company_id"]
         # https://admin.swiftlane.com/api/v1/intercom/history/?company_id=82488426438216692&page=1&per_page=20&user_id=236154022679109146
         url = f"{base_url}/api/v1/intercom/history/?company_id={company_id}&page=1&per_page=3&user_id={user_id}&status=missed"
+        access_token = tools_utitlity.check_and_refresh_access_token(doc_id="236154022679109146")
         headers = {
-            "Authorization": f"Bearer {os.getenv('API_TOKEN')}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         }
         response = requests.get(url, headers=headers)

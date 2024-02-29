@@ -40,7 +40,13 @@ def create_app(test_config=None):
 
     if settings.INIT_FIREBASE:
         if len(firebase_admin._apps) == 0:
-            firebase_admin.initialize_app()
+            firebase_admin.initialize_app(
+                name="swiftlane-dev-instance",
+                options={
+                    "projectId": "swiftlane-dev",
+                    "serviceAccountId": settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER,
+                },
+            )
     return app
 
 

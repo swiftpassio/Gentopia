@@ -1,19 +1,31 @@
 import os
 import dotenv
+import firebase_admin
+
 from gentopia.assembler.agent_assembler import AgentAssembler
 import json
 import logging
 
 import requests
 
+from slagents import settings
 
 logger = logging.getLogger(__file__)
 dotenv.load_dotenv(".env")  # load environmental keys
+if len(firebase_admin._apps) == 0:
+    firebase_admin.initialize_app(
+        name="swiftlane-dev-instance",
+        options={
+            "projectId": "swiftlane-dev",
+            "serviceAccountId": settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER,
+        },
+    )
 
 
 def missing_intercom_call(user_id: int, company_id: int, ticket_id: int, message: str):
     agent = AgentAssembler(file='slagents/intercom/agent.yaml').get_agent()
     response = agent.run(f"user_id:{user_id} , company_id:{company_id}, ticket_id:{ticket_id} {message}")
+    print(response)
     return response
 
 
@@ -138,4 +150,4 @@ def run_conversation(message, user_id, company_id, ticket_id):
         )
 
 
-run_conversation("my pin is not working", 236154022679109146, 82488426438216692, 12345)
+run_conversation("not getting calls", 641245110265904786, 625933143218851574, 12345)
