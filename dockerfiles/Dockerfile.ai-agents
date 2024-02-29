@@ -1,4 +1,4 @@
-FROM swiftpassweb-base
+FROM sl-ai-agents-base
 
 WORKDIR /code/Gentopia
 
