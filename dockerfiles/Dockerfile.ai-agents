@@ -1,0 +1,7 @@
+FROM swiftpassweb-base
+
+WORKDIR /code/Gentopia
+
+RUN chmod +x /code/Gentopia/slagents/bin/cloud_run_start.sh
+
+CMD ["/code/Gentopia/slagents/bin/server.sh"]

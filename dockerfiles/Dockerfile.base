@@ -1,0 +1,32 @@
+FROM python:3.10-alpine
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  sudo \
+  tzdata \
+  make \
+  curl \
+  python-setuptools \
+  libsm6 \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade setuptools
+
+
+EXPOSE 5000
+ENV PYTHONPATH=/code/Gentopia \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+COPY requirements.txt /code/Gentopia/requirements.txt
+
+RUN pip install -r /code/Gentopia/requirements.txt
+
+COPY ./ /code/Gentopia
+
+WORKDIR /code/Gentopia
+
+CMD ["/code/Gentopia/slagents/bin/server.sh"]

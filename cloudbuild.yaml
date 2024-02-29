@@ -1,0 +1,68 @@
+steps:
+  # pull latest base image if it exists from cache
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      [
+        "-c",
+        "echo us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents:latest && docker pull us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/base:latest || exit 0",
+      ]
+    id: pull_latest
+
+  # build base image with all dependencies
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      [
+        "-c",
+        "docker build --tag=sl-ai-agents-base --file=dockerfiles/Dockerfile.base  --cache-from us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/base:latest .",
+      ]
+    id: build_base
+    wait_for: ["pull_latest"]
+
+
+  # Build swiftpassweb-be image from base image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--tag=us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$SHORT_SHA",
+        "--tag=us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$BRANCH_NAME",
+        "--tag=us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$BUILD_ID",
+        "--tag=us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/base:latest",
+        "--file=dockerfiles/Dockerfile.ai-agents",
+        ".",
+      ]
+    id: build_ai_agents
+    wait_for: ["build_base"]
+
+
+  # push image registry & Deploy swiftpassweb-be image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [[ "$BRANCH_NAME" == "development" || "$BRANCH_NAME" == "master" || "$BRANCH_NAME" == "intercom-ai-agent" ]]; then
+          docker push us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$SHORT_SHA
+          if [[ "${PROJECT_ID}" != "swiftpass" ]]; then
+            gcloud run deploy sl-ai-agents \
+            --image=us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$SHORT_SHA \
+            --region=us-east1
+          fi
+        fi
+    id: deploy_ae
+    waitFor: ['build_ai_agents']
+
+
+
+images:
+  - "us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$SHORT_SHA"
+  - "us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$BRANCH_NAME"
+  - "us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/cloud-run:$BUILD_ID"
+  - "us-east1-docker.pkg.dev/${PROJECT_ID}/sl-ai-agents/base:latest"
+
+timeout: 1200s
+options:
+  pool:
+    name: "projects/${PROJECT_ID}/locations/us-east1/workerPools/dev-builds"

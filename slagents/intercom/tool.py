@@ -89,11 +89,12 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
     name = "Get debugging Logs of Last 3 Missed Calls"
     description = "A tool to get the debugging logs of the last 3 missed calls example: GetCallLogOfLast3MissedCalls {'user_id': 236154022679109146, 'company_id': 82488426438216692}"
 
-    def _run(self, user_id: str) -> Any:
+    def _run(self, user_data: str) -> Any:
         base_url = os.getenv("BASE_URL")
-        user_data = ast.literal_eval(user_id)
-        user_id = user_data["user_id"]
-        company_id = user_data["company_id"]
+        print(f"Getting user missed events data for user: {user_data}")
+        user_data_obj = ast.literal_eval(user_data)
+        user_id = user_data_obj["user_id"]
+        company_id = user_data_obj["company_id"]
         # https://admin.swiftlane.com/api/v1/intercom/history/?company_id=82488426438216692&page=1&per_page=20&user_id=236154022679109146
         url = f"{base_url}/api/v1/intercom/history/?company_id={company_id}&page=1&per_page=3&user_id={user_id}&status=missed"
         headers = {

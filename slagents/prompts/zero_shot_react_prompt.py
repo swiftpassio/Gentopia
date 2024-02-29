@@ -12,8 +12,6 @@ Thought: you should always think about what to do
 
 Action: the action to take, should be one of [{tool_names}]
 
-If No Action: you can skip the action and go to the next question or final answer
-
 Action Input: the input to the action
 
 Observation: the result of the action
