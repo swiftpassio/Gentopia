@@ -6,7 +6,6 @@ from slagents.auth import RequiresServiceAccountAuth
 from gentopia.assembler.agent_assembler import AgentAssembler
 import json
 import logging
-import os
 import requests
 
 from slagents.schemas.zendesk_support_models import ZendeskTicketRequestSchema
@@ -48,7 +47,7 @@ def run_conversation(message, user_id, company_id, ticket_id):
         }
 
     ]
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = settings.OPENAI_API_KEY
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     # Define the endpoint URL for the ChatGPT model API call
@@ -97,4 +96,3 @@ def run_conversation(message, user_id, company_id, ticket_id):
             f"Failed to make API call, status code: {response.status_code}, response: {response.text}"
         )
 
-# run_conversation("not getting calls", 641245110265904786, 625933143218851574, 12345)
