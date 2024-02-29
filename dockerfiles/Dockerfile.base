@@ -1,32 +1,41 @@
+# Start from a Python 3.10 Alpine image
 FROM python:3.10-alpine
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-  sudo \
-  tzdata \
-  make \
-  curl \
-  python-setuptools \
-  libsm6 \
-  && rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install --upgrade pip
-RUN pip3 install --upgrade setuptools
-
-
-EXPOSE 5000
-ENV PYTHONPATH=/code/Gentopia \
+# Set environment variables to non-interactive (useful for automated builds)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/code/Gentopia \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8
 
+# Install system dependencies
+RUN apk update && \
+    apk add --no-cache \
+    sudo \
+    tzdata \
+    make \
+    curl \
+    py3-setuptools \
+    libsm6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and setuptools
+RUN pip install --upgrade pip setuptools
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Copy only the requirements.txt initially to leverage Docker cache
 COPY requirements.txt /code/Gentopia/requirements.txt
 
+# Install Python dependencies
 RUN pip install -r /code/Gentopia/requirements.txt
 
+# Copy the rest of your application code
 COPY ./ /code/Gentopia
 
+# Set the working directory
 WORKDIR /code/Gentopia
 
+# Command to run your application
 CMD ["/code/Gentopia/slagents/bin/server.sh"]
