@@ -56,6 +56,7 @@ openai==0.28.0
 pexpect
 gradio_client
 pinecone-client
+onnxruntime>=1.14.1
 chroma
 chromadb
 tiktoken
