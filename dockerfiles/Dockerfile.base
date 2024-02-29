@@ -19,10 +19,10 @@ RUN apk update && \
     libxext \
     libxrender \
     libstdc++ \
-    gcc \                # Add gcc
-    g++ \                # Add g++ for C++ compilation
-    musl-dev \           # Standard C library development files
-    linux-headers \      # Header files for the Linux kernel, needed by some packages
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers \
     && rm -rf /var/cache/apk/*
 
 # Upgrade pip and setuptools
