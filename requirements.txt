@@ -30,3 +30,36 @@ crcmod>=1.7
 
 # kms related
 six==1.16.0
+
+# from gentopia
+tenacity
+python-dotenv
+arxiv
+chardet
+cchardet
+numexpr
+googlesearch-python
+wolframalpha
+numpy
+rich
+tqdm
+prompt-toolkit
+regex
+attrs
+fastapi
+geopy
+pydantic==1.9
+pytest
+PyYAML
+requests
+setuptools
+uvicorn
+openai
+pexpect
+gradio_client
+pinecone-client
+chroma
+chromadb
+tiktoken
+scholarly
+google-cloud-bigquery==3.17.2
