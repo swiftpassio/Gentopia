@@ -5,9 +5,9 @@ import json
 import firebase_admin
 import requests
 from firebase_admin import firestore
-
+import logging
 from swiftlane import settings
-
+logger = logging.getLogger(__file__)
 
 def get_access_token_from_refresh_token(refresh_token) -> str:
     """
@@ -81,12 +81,17 @@ def get_access_tokens_from_firestore(doc_id: str):
 
 
 def check_and_refresh_access_token(doc_id: str):
-    tokens = get_access_tokens_from_firestore(doc_id=doc_id)
-    if not tokens:
-        access_token = get_access_token_from_refresh_token(refresh_token=settings.ADMIN_REFRESH_TOKEN)
-        set_admin_tokens_in_firestore(doc_id=doc_id, access_token=access_token,
-                                      refresh_token=settings.ADMIN_REFRESH_TOKEN)
-        return access_token
+    try:
+        tokens = get_access_tokens_from_firestore(doc_id=doc_id)
+        if not tokens:
+            access_token = get_access_token_from_refresh_token(refresh_token=settings.ADMIN_REFRESH_TOKEN)
+            set_admin_tokens_in_firestore(doc_id=doc_id, access_token=access_token,
+                                          refresh_token=settings.ADMIN_REFRESH_TOKEN)
+            return access_token
+    except Exception as e:
+        logger.error(f"Failed to get access token: {e}")
+        logger.info(f"Failed to get access token: {e}")
+        raise Exception(f"Failed to get access token: {e}")
     return tokens.get("access_token")
 
 
