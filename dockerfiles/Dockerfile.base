@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies
 RUN apk update && \
     apk add --no-cache \
+    bash \
     sudo \
     tzdata \
     make \
