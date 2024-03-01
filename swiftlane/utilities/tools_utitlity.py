@@ -6,7 +6,7 @@ import firebase_admin
 import requests
 from firebase_admin import firestore
 
-from slagents import settings
+from swiftlane import settings
 
 
 def get_access_token_from_refresh_token(refresh_token) -> str:
