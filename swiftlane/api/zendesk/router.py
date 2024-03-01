@@ -5,10 +5,9 @@ import requests
 from fastapi import APIRouter
 from fastapi import Depends
 import logging
-
 from swiftlane import settings
 from swiftlane.api.zendesk.api_model import ZendeskTicketRequestSchema
-from swiftlane.auth import RequiresServiceAccountAuth
+from swiftlane.auth import service_account_auth
 
 logger = logging.getLogger(__file__)
 
@@ -16,14 +15,11 @@ from gentopia import AgentAssembler
 
 router = APIRouter()
 
-service_account_auth_checker = RequiresServiceAccountAuth(
-    service_accounts=settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER)
-
 
 @router.post("/zendesk-support-bot")
 async def debug_zendesk_support_ticket(
         payload: ZendeskTicketRequestSchema,
-        # auth: Any = Depends(service_account_auth_checker),
+        # user_data: dict = Depends(service_account_auth(settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER)),
 ):
     agent_output = await run_conversation(message=payload.ticket_description, user_id=payload.user_id,
                                           company_id=payload.company_id, ticket_id=payload.ticket_id)
