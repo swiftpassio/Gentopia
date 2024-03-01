@@ -2,7 +2,7 @@ from gentopia.tools import *
 from google.cloud import bigquery
 import logging
 import ast
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from swiftlane.utilities import tools_utitlity
 
 logger = logging.getLogger(__file__)
@@ -113,20 +113,22 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
         } for call in response.json()["data"]["call_history"]]
         logs = []
         for call_row_dict in call_room_ids:
-            call_row_id = call_row_dict["id_str"]
-            call_room_id = call_row_dict["room_sid"]
-            # make api call and get missed call logs in parallel
-
-            url = f"https://admin.swiftlane.com/api/v1/intercom-bq-logs?call_row_id={call_row_id}"
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                raise Exception(f"Failed to get user data: {response.text}")
-            server_logs = response.json()
-            mobile_log = get_missed_call_andriod_logs(call_room_id)
-            logs.append({
-                "server_logs": server_logs,
-                "mobile_logs": mobile_log
-            })
+            log_data = parallel_tasks(call_row_dict, headers=headers)
+            logs.append(log_data)
+        # for call_row_dict in call_room_ids:
+        #     call_row_id = call_row_dict["id_str"]
+        #     call_room_id = call_row_dict["room_sid"]
+        #     # make api call and get missed call logs in parallel
+        #     url = f"https://admin.swiftlane.com/api/v1/intercom-bq-logs?call_row_id={call_row_id}"
+        #     response = requests.get(url, headers=headers)
+        #     if response.status_code != 200:
+        #         raise Exception(f"Failed to get user data: {response.text}")
+        #     server_logs = response.json()
+        #     mobile_log = get_missed_call_andriod_logs(call_room_id)
+        #     logs.append({
+        #         "server_logs": server_logs,
+        #         "mobile_logs": mobile_log
+        #     })
 
         return logs
 
@@ -376,4 +378,30 @@ LIMIT
     ]
     return results if results else []
 
+
+def fetch_server_logs(call_row_id, headers):
+    url = f"https://admin.swiftlane.com/api/v1/intercom-bq-logs?call_row_id={call_row_id}"
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Failed to get user data: {response.text}")
+    return response.json()
+
+def parallel_tasks(call_row_dict,headers):
+    call_row_id = call_row_dict["id_str"]
+    call_room_id = call_row_dict["room_sid"]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_to_task = {
+            executor.submit(fetch_server_logs, call_row_id, headers): 'server',
+            executor.submit(get_missed_call_andriod_logs, call_room_id): 'mobile'
+        }
+        results = {}
+        for future in as_completed(future_to_task):
+            task_type = future_to_task[future]
+            try:
+                data = future.result()
+            except Exception as exc:
+                print(f'{task_type} generated an exception: {exc}')
+            else:
+                results[task_type + '_logs'] = data
+    return results
 
