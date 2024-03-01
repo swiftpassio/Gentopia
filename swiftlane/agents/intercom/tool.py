@@ -100,6 +100,7 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
         # https://admin.swiftlane.com/api/v1/intercom/history/?company_id=82488426438216692&page=1&per_page=20&user_id=236154022679109146
         url = f"{base_url}/api/v1/intercom/history/?company_id={company_id}&page=1&per_page=3&user_id={user_id}&status=missed"
         access_token = tools_utitlity.check_and_refresh_access_token(doc_id="236154022679109146")
+        logger.info(f"Access token: {access_token}")
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
