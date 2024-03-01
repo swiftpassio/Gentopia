@@ -1,3 +1,5 @@
+from fastapi import Depends, Header, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from flask import request
 import logging
 from werkzeug.exceptions import Unauthorized
@@ -5,56 +7,47 @@ from werkzeug.exceptions import Unauthorized
 from swiftlane import settings
 import google.auth.transport.requests
 from google.oauth2 import id_token
-
+from fastapi import status
 from swiftlane.utilities import exceptions
 
 logger = logging.getLogger(__file__)
 
 
-class RequiresServiceAccountAuth:
-    def __init__(self, service_accounts=None):
-        """
-        This init method is called when you decorate a new method with RequiresAuth in the rest API
-        This can be used to set the roles etc for the api access
-        """
-        self.service_accounts = service_accounts
+def service_account_auth(service_accounts=None):
+    def get_user_data(authorization: str = Header(None)):
+        if not authorization:
+            raise HTTPException(status_code=401, detail="No authorization token provided")
+        authorization = extract_auth_token_from_header(authorization)
+        authenticate_service_account_token(service_accounts, authorization)
 
-    def __call__(self, f):
-        """
-        This is also called at decoration! Put any runtime logic in the wrapped function
-        """
-
-        def wrapped_f(*args, **kwargs):
-            token = authenticate_service_account_token(
-                service_accounts=self.service_accounts
-            )
-            wrapped_f.__name__ = f.__name__
-            wrapped_f.__doc__ = f.__doc__
-            kwargs["token"] = token
-            return f(*args, **kwargs)
-
-        return wrapped_f
+    return get_user_data
 
 
-def authenticate_service_account_token(service_accounts=None):
+
+def authenticate_service_account_token(service_accounts=None, token=None):
     audience = settings.HOST_NAME
-    bearer_token = request.headers.get("Authorization")
-    token = extract_auth_token_from_header()
     certs_url = "https://www.googleapis.com/oauth2/v1/certs"
     google_request = google.auth.transport.requests.Request()
     try:
         result = id_token.verify_token(token, google_request, certs_url=certs_url)
     except Exception as e:
         logger.info(f"Invalid token:{e}")
-        raise exceptions.ApplicationErrorWithStatus200(message=f"Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_200_OK,
+            detail="Token expired or invalid, please log in",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if audience in result["aud"] and result["email"] in service_accounts:
-        return bearer_token
+        return token
     logger.info("aud or email not present in token for svc account")
-    raise exceptions.ApplicationErrorWithStatus200(message=f"Unauthorized")
+    raise HTTPException(
+        status_code=status.HTTP_200_OK,
+        detail="Unauthorized",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
-def extract_auth_token_from_header():
-    auth_token = request.headers.get("Authorization")
+def extract_auth_token_from_header(auth_token):
     if auth_token:
         auth_token = auth_token.encode()
         if b"Basic" in auth_token:
