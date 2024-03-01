@@ -36,7 +36,7 @@ async def debug_zendesk_support_ticket(
 
 
 async def missing_intercom_call(user_id: int, company_id: int, ticket_id: int, message: str):
-    agent = AgentAssembler(file='slagents/intercom/agent.yaml').get_agent()
+    agent = AgentAssembler(file='swiftlane/agents/intercom/agent.yaml').get_agent()
     response = agent.run(f"user_id:{user_id} , company_id:{company_id}, ticket_id:{ticket_id} {message}", ticket_id)
     return response
 

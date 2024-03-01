@@ -8,7 +8,7 @@ import logging
 
 import requests
 
-from slagents import settings
+from swiftlane import settings
 
 logger = logging.getLogger(__file__)
 dotenv.load_dotenv(".env")  # load environmental keys
@@ -23,7 +23,7 @@ if len(firebase_admin._apps) == 0:
 
 
 def missing_intercom_call(user_id: int, company_id: int, ticket_id: int, message: str):
-    agent = AgentAssembler(file='slagents/intercom/agent.yaml').get_agent()
+    agent = AgentAssembler(file='swiftlane/agents/intercom/agent.yaml').get_agent()
     response = agent.run(f"user_id:{user_id} , company_id:{company_id}, ticket_id:{ticket_id} {message}")
     print(response)
     return response

@@ -1,7 +1,7 @@
 name: llm_user_profile_and_intercom_summary
 type: vanilla
 description: llm_agent is a vanilla agent based on LLM. Use this to summarize the user profile and intercom data.
-prompt_template: !prompt slagents.prompts.intercom_summary_prompt.PromptOfIntercomSummary
+prompt_template: !prompt swiftlane.prompts.intercom_summary_prompt.PromptOfIntercomSummary
 llm:
   # use gpt-3.5-turbo model
   model_name: gpt-4-1106-preview

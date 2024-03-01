@@ -1,7 +1,7 @@
 name: llm_intercom_call_event_analyzer
 type: vanilla
 description: llm_intercom_call_event_analyzer is an vanilla agent based on LLM. Use this to analyze the intercom call events of each missed call.
-prompt_template: !prompt slagents.prompts.intercom_call_logs_analyzer.PromptOfIntercomLogsAnalyzer
+prompt_template: !prompt swiftlane.prompts.intercom_call_logs_analyzer.PromptOfIntercomLogsAnalyzer
 llm:
   # use gpt-3.5-turbo model
   model_name: gpt-4-1106-preview

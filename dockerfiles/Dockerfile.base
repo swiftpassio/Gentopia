@@ -42,4 +42,4 @@ COPY ./ /code/agents
 WORKDIR /code/agents
 
 # Command to run your application
-CMD ["/code/agents/slagents/bin/server.sh"]
+CMD ["/code/agents/swiftlane/bin/server.sh"]

@@ -8,8 +8,8 @@ target_tasks:
   - get call log of last 3 missed calls
 
 prompt_template:
-  Planner: !prompt slagents.intercom.prompt.IntercomPlannerPrompt
-  Solver: !prompt slagents.intercom.prompt.IntercomSolverPrompt
+  Planner: !prompt swiftlane.agents.intercom.prompt.IntercomPlannerPrompt
+  Solver: !prompt swiftlane.agents.intercom.prompt.IntercomSolverPrompt
 llm:
   Planner:
     # use 16k model , gpt-4
@@ -28,9 +28,9 @@ llm:
       repetition_penalty: 0.0
       max_tokens: 2048
 plugins:
-  - !tool slagents.intercom.tool.GetUserData
-  - !tool slagents.intercom.tool.GetIntercomHistoryForUser
+  - !tool swiftlane.agents.intercom.tool.GetUserData
+  - !tool swiftlane.agents.intercom.tool.GetIntercomHistoryForUser
   - !include ./llm.yaml
-  - !tool slagents.intercom.tool.GetCallLogOfLast3MissedCalls
+  - !tool swiftlane.agents.intercom.tool.GetCallLogOfLast3MissedCalls
   - !include ./intercom_log_analyzer_llm.yaml
 
