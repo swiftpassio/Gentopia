@@ -1,37 +1,47 @@
-from flask import request
-from flask_restful import Resource
-
-from slagents import settings
-from slagents.auth import RequiresServiceAccountAuth
-from gentopia.assembler.agent_assembler import AgentAssembler
 import json
-import logging
-import requests
+from typing import Any
 
-from slagents.schemas.zendesk_support_models import ZendeskTicketRequestSchema
-from slagents.utilities import tools_utitlity
+import requests
+from fastapi import APIRouter
+from fastapi import Depends
+import logging
+
+from swiftlane import settings
+from swiftlane.api.zendesk.api_model import ZendeskTicketRequestSchema
+from swiftlane.auth import RequiresServiceAccountAuth
 
 logger = logging.getLogger(__file__)
 
+from gentopia import AgentAssembler
 
-class ZendeskSupportCloudTaskHandler(Resource):
-    @RequiresServiceAccountAuth(
-        service_accounts=settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER
-    )
-    def post(self, token=None):
-        ticket_request: ZendeskTicketRequestSchema = ZendeskTicketRequestSchema.load(request.json)
-        agent_output = run_conversation(message=ticket_request.ticket_description, user_id=ticket_request.user_id,
-                                        company_id=ticket_request.company_id, ticket_id=ticket_request.ticket_id)
-        tools_utitlity.post_internal_comment_on_ticket(ticket_request.ticket_id, agent_output)
+router = APIRouter()
+
+service_account_auth_checker = RequiresServiceAccountAuth(
+    service_accounts=settings.SERVICE_ACCOUNTS_FOR_CLOUD_TASK_HANDLER)
 
 
-def missing_intercom_call(user_id: int, company_id: int, ticket_id: int, message: str):
-    agent = AgentAssembler(file='intercom/agent.yaml').get_agent()
-    response = agent.run(f"user_id:{user_id} , company_id:{company_id}, ticket_id:{ticket_id} {message}")
+@router.post("/zendesk-support-bot")
+async def debug_zendesk_support_ticket(
+        payload: ZendeskTicketRequestSchema,
+        # auth: Any = Depends(service_account_auth_checker),
+):
+    agent_output = await run_conversation(message=payload.ticket_description, user_id=payload.user_id,
+                                          company_id=payload.company_id, ticket_id=payload.ticket_id)
+    if agent_output:
+        # store agent output in firebase
+        pass
+        # await tools_utitlity.post_internal_comment_on_ticket(payload.ticket_id, agent_output)
+    return {"status": "success",
+            "agent_output": agent_output.output if agent_output else None}
+
+
+async def missing_intercom_call(user_id: int, company_id: int, ticket_id: int, message: str):
+    agent = AgentAssembler(file='slagents/intercom/agent.yaml').get_agent()
+    response = agent.run(f"user_id:{user_id} , company_id:{company_id}, ticket_id:{ticket_id} {message}", ticket_id)
     return response
 
 
-def run_conversation(message, user_id, company_id, ticket_id):
+async def run_conversation(message, user_id, company_id, ticket_id):
     logger.info(f"run_conversation:{message},{user_id},{company_id}")
     messages = [
         {"role": "user", "content": message},
@@ -89,10 +99,9 @@ def run_conversation(message, user_id, company_id, ticket_id):
             function_args["company_id"] = company_id
             function_args["ticket_id"] = ticket_id
             function_args["message"] = message
-            function_response = function_to_call(**function_args)
+            function_response = await function_to_call(**function_args)
             return function_response
     else:
         logger.info(
             f"Failed to make API call, status code: {response.status_code}, response: {response.text}"
         )
-

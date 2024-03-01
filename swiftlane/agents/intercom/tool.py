@@ -3,7 +3,7 @@ from google.cloud import bigquery
 import logging
 import ast
 
-from slagents.utilities import tools_utitlity
+from swiftlane.utilities import tools_utitlity
 
 logger = logging.getLogger(__file__)
 
@@ -108,13 +108,15 @@ class GetCallLogOfLast3MissedCalls(BaseTool):
         if response.status_code != 200:
             raise Exception(f"Failed to get user data: {response.text}")
         call_room_ids = [{
-            "room_sid": call["room_sid"],
+            "room_sid": call["room_id"],
             "id_str": call["id_str"]
         } for call in response.json()["data"]["call_history"]]
         logs = []
         for call_row_dict in call_room_ids:
             call_row_id = call_row_dict["id_str"]
             call_room_id = call_row_dict["room_sid"]
+            # make api call and get missed call logs in parallel
+
             url = f"https://admin.swiftlane.com/api/v1/intercom-bq-logs?call_row_id={call_row_id}"
             response = requests.get(url, headers=headers)
             if response.status_code != 200:
@@ -178,8 +180,9 @@ FROM
 
 
 def get_missed_call_andriod_logs(room_sid):
+
     query = f"""
-                SELECT
+                    SELECT
   *
 FROM (
   SELECT
@@ -249,12 +252,12 @@ FROM (
     room_sid,
     CONCAT(context_device_manufacturer, ' / ', context_device_model) AS device,
     CONCAT('reachable=', network_reachable, '; cellular=', context_network_cellular, '; wifi=', context_network_wifi) AS network_status,
-    CONCAT('is power saver eneabled=', power_save_mode_enabled, '\n','is idle mode enabled=', idle_mode_enabled) AS device_state_1,
-    CONCAT('notification enabled=',is_notification_enabled,'\n','phone permission granted=',read_phone_state_permission_granted, '\n', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
-    CONCAT('is DND enabled=', is_dnd_enabled, '\n', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
+    CONCAT('is power saver eneabled=', power_save_mode_enabled, '', 'is idle mode enabled=', idle_mode_enabled) AS device_state_1,
+    CONCAT('notification enabled=',is_notification_enabled,'','phone permission granted=',read_phone_state_permission_granted, '', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
+    CONCAT('is DND enabled=', is_dnd_enabled, '', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
     CONCAT('') AS notification_config,
     context_traits_user_id,
-    TIMESTAMP(DATETIME(original_timestamp, "America/Los_Angeles")) AS US_LA_time,
+    TIMESTAMP(DATETIME(original_timestamp, 'America/Los_Angeles')) AS US_LA_time,
   FROM
     `swiftpass.android_swiftlane_id.intercom_view`
   WHERE
@@ -324,10 +327,10 @@ FROM (
     room_sid,
     CONCAT(context_device_manufacturer, ' / ', context_device_model) AS device,
     CONCAT('reachable=', network_reachable, '; cellular=', context_network_cellular, '; wifi=', context_network_wifi) AS network_status,
-    CONCAT('is power saver eneabled=', power_save_mode_enabled, '\n','is idle mode enabled=', idle_mode_enabled) AS device_state_1,
-    CONCAT('notification enabled=',is_notification_enabled,'\n','phone permission granted=',read_phone_state_permission_granted, '\n', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
-    CONCAT('is DND enabled=', is_dnd_enabled, '\n', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
-    CONCAT('notification delay=', message_delivery_delay_seconds, '\n','is call start time valid=', is_call_start_time_valid, '\n','delay time threshold=', call_start_time_threshold) AS notification_config,
+    CONCAT('is power saver enabled=', power_save_mode_enabled, '','is idle mode enabled=', idle_mode_enabled) AS device_state_1,
+    CONCAT('notification enabled=',is_notification_enabled,'','phone permission granted=',read_phone_state_permission_granted, '', 'is battery optimisation ignored=', is_battery_optimization_ignored) AS user_setting,
+    CONCAT('is DND enabled=', is_dnd_enabled, '', 'is silent mode enabled=', is_silent_mode_enabled) AS device_state_2,
+    CONCAT('notification delay=', message_delivery_delay_seconds, '','is call start time valid=', is_call_start_time_valid, '','delay time threshold=', call_start_time_threshold) AS notification_config,
     context_traits_user_id,
     TIMESTAMP(DATETIME(original_timestamp, "America/Los_Angeles")) AS US_LA_time,
   FROM
@@ -342,12 +345,17 @@ FROM (
     OR (action = 'failed'
       AND error_msg = 'error checking if call is active') )
 WHERE
-   room_sid= f{room_sid}
+  -- context_traits_user_id = '631937167494661278'
+   room_sid='{room_sid}'
 ORDER BY
   original_timestamp DESC
 LIMIT
   1000
-            """
+    """
+
+
+    # Note: Ensure you replace the placeholder and actual SQL syntax according to your requirements.
+
     client = get_google_bigquery_client()
     query_job = client.query(query)
     results = [
@@ -367,3 +375,5 @@ LIMIT
         for row in query_job.result()
     ]
     return results if results else []
+
+

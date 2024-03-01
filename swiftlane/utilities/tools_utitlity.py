@@ -90,7 +90,7 @@ def check_and_refresh_access_token(doc_id: str):
     return tokens.get("access_token")
 
 
-def post_internal_comment_on_ticket(ticket_id, body):
+async def post_internal_comment_on_ticket(ticket_id, body):
     zendesk_url = f"https://swiftlane.zendesk.com/api/v2/tickets/{ticket_id}"
     payload = {
         "ticket": {

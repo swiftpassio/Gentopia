@@ -1,13 +1,12 @@
 from flask import request
 import logging
-
 from werkzeug.exceptions import Unauthorized
 
-from slagents import settings
+from swiftlane import settings
 import google.auth.transport.requests
 from google.oauth2 import id_token
 
-from slagents.utilities import exceptions
+from swiftlane.utilities import exceptions
 
 logger = logging.getLogger(__file__)
 
