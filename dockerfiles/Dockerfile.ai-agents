@@ -1,0 +1,7 @@
+FROM sl-ai-agents-base
+
+WORKDIR /code/agents
+
+RUN chmod +x /code/agents/swiftlane/bin/server.sh
+
+CMD ["/code/agents/swiftlane/bin/server.sh"]

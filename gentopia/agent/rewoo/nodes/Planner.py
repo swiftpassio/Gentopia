@@ -61,16 +61,18 @@ class Planner(BaseModel):
             else:
                 return ZeroShotPlannerPrompt.format(tool_description=worker_desctription, task=instruction)
 
-    def run(self, instruction: str, output: BaseOutput = BaseOutput()) -> BaseCompletion:
+    def run(self, instruction: str, output: BaseOutput = BaseOutput(), identifier:str=None) -> BaseCompletion:
 
         output.info("Running Planner")
         prompt = self._compose_prompt(instruction)
+        logging.info(f"Prompt for identifier :{identifier}: {prompt}")
         output.debug(f"Prompt: {prompt}")
         response = self.model.completion(prompt)
         if response.state == "error":
             output.error("Planner failed to retrieve response from LLM")
             raise ValueError("Planner failed to retrieve response from LLM")
         else:
+            logging.info(f"Planner run successful.output for identifier :{identifier}: {response}")
             output.info(f"Planner run successful.")
             return response
 

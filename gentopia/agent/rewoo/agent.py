@@ -50,7 +50,8 @@ class RewooAgent(BaseAgent):
     prompt_template: Dict[str, PromptTemplate]  # {"Planner": xxx, "Solver": xxx}
     plugins: List[Union[BaseTool, BaseAgent]]
     examples: Dict[str, Union[str, List[str]]] = dict()
-    args_schema: Optional[Type[BaseModel]] = create_model("ReactArgsSchema", instruction=(str, ...))
+    args_schema: Optional[Type[BaseModel]] = create_model("ReactArgsSchema", instruction=(str, ...), identifier=(str, ...), )
+
     # logger = logging.getLogger('application')
 
     def _get_llms(self):
@@ -137,7 +138,6 @@ class RewooAgent(BaseAgent):
 
         return evidences, level
 
-
     def _run_plugin(self, e, planner_evidences, worker_evidences, output=BaseOutput()):
         """
         Run a plugin for a given evidence. This function should also cumulate the cost and tokens.
@@ -175,8 +175,9 @@ class RewooAgent(BaseAgent):
                 result['evidence'] = "No evidence found."
             finally:
                 output.panel_print(result['evidence'], f"[green] Function Response of [blue]{tool}: ")
+                logging.info(f"Function Response of {tool}: {result['evidence']}")
+        print(result['evidence'])
         return result
-
 
     def _get_worker_evidence(self, planner_evidences, evidences_level, output=BaseOutput()):
         """
@@ -216,10 +217,11 @@ class RewooAgent(BaseAgent):
             if p.name == name:
                 return p
 
-    def run(self, instruction: str) -> AgentOutput:
+    def run(self, instruction: str, identifier:str) -> AgentOutput:
         """
         Run the agent with a given instruction.
 
+        :param identifier:
         :param instruction: Instruction to run.
         :type instruction: str
         :return: AgentOutput object.
@@ -241,7 +243,8 @@ class RewooAgent(BaseAgent):
                         examples=self.examples.get("Solver", None))
 
         # Plan
-        planner_output = planner.run(instruction)
+        planner_output = planner.run(instruction, identifier=identifier)
+        logging.info(f"Planner output for identifier:{identifier}: {planner_output.content}")
         total_cost += calculate_cost(planner_llm.model_name, planner_output.prompt_token,
                                      planner_output.completion_token)
         total_token += planner_output.prompt_token + planner_output.completion_token
@@ -258,9 +261,11 @@ class RewooAgent(BaseAgent):
 
         # Solve
         solver_output = solver.run(instruction, worker_log)
+        logging.info(f"Solver output for identifier:{identifier}: {solver_output.content}")
         total_cost += calculate_cost(solver_llm.model_name, solver_output.prompt_token,
                                      solver_output.completion_token) + plugin_cost
         total_token += solver_output.prompt_token + solver_output.completion_token + plugin_token
+        logging.info(f"Total cost for identifier:{identifier}: {total_cost}")
 
         return AgentOutput(output=solver_output.content, cost=total_cost, token_usage=total_token)
 

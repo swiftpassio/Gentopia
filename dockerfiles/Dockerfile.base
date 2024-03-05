@@ -1,0 +1,46 @@
+# Start from a Python 3.10 Alpine image
+FROM python:3.10-alpine
+ENV DEBIAN_FRONTEND=noninteractive
+# Install system dependencies
+RUN apk update && \
+    apk add --no-cache \
+    bash \
+    sudo \
+    tzdata \
+    make \
+    curl \
+    py-setuptools \
+    libxext \
+    libxrender \
+    libstdc++ \
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers \
+    && rm -rf /var/cache/apk/*
+
+# Upgrade pip and setuptools
+RUN pip install --upgrade pip setuptools
+
+# Expose the port the app runs on
+EXPOSE 5000
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/code/agents \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+# Copy only the requirements.txt initially to leverage Docker cache
+COPY requirements.txt /code/agents/requirements.txt
+
+# Install Python dependencies
+RUN pip install -r /code/agents/requirements.txt
+
+# Copy the rest of your application code
+COPY ./ /code/agents
+
+# Set the working directory
+WORKDIR /code/agents
+
+# Command to run your application
+CMD ["/code/agents/swiftlane/bin/server.sh"]

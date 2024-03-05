@@ -1,0 +1,36 @@
+name: intercom_debugger
+type: rewoo
+version: 0.0.1
+description: This agent is a technical support expert on intercom systems. Pass user id , company id , zendesk ticket id as input arguments
+target_tasks:
+  - Get the user profile data
+  - get intercom history for user
+  - get call log of last 3 missed calls
+
+prompt_template:
+  Planner: !prompt swiftlane.agents.intercom.prompt.IntercomPlannerPrompt
+  Solver: !prompt swiftlane.agents.intercom.prompt.IntercomSolverPrompt
+llm:
+  Planner:
+    # use 16k model , gpt-4
+    model_name: gpt-4-1106-preview
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 2048
+  Solver:
+     # use 16k model , gpt-4
+    model_name: gpt-4-1106-preview
+    params:
+      temperature: 0.0
+      top_p: 0.9
+      repetition_penalty: 0.0
+      max_tokens: 2048
+plugins:
+  - !tool swiftlane.agents.intercom.tool.GetUserData
+  - !tool swiftlane.agents.intercom.tool.GetIntercomHistoryForUser
+  - !include ./llm.yaml
+  - !tool swiftlane.agents.intercom.tool.GetCallLogOfLast3MissedCalls
+  - !include ./intercom_log_analyzer_llm.yaml
+
